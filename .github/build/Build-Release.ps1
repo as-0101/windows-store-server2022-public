@@ -23,8 +23,10 @@ $resolver=Join-Path $env:RUNNER_TEMP 'Get-MSStoreDownloadLinks.ps1'
 Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/1NobleCyber/Get-MSStoreDownloadLinks/26510d1de601fbb76a7e124188a805abac235f64/Get-MSStoreDownloadLinks.ps1' -OutFile $resolver -ErrorAction Stop
 $blobHash=((git hash-object $resolver) | Select-Object -First 1).Trim()
 if($blobHash -ne '12c6ef8c9bb905bf9bf322d37c9b06da64cd6e2a'){throw "Pinned Store link resolver Git SHA1 mismatch: $blobHash"}
-$links=@(& $resolver -ProductId '9WZDNCRFJBMP' -Architecture x64 -Locale en-US -OSSKUId 48 -OSVersion '10.0.20348.1')
+$links=@(& $resolver -ProductId '9WZDNCRFJBMP' -Locale en-US -OSSKUId 48 -OSVersion '10.0.20348.1')
 if(-not $links){throw 'Windows Update Store link resolver returned no packages'}
+Write-Host 'WU package names: '
+$links|Select-Object -ExpandProperty FileName|Select-Object -First 35|ForEach-Object {Write-Host "  $_"}
 foreach($item in $items) {
   $match=@($links | Where-Object {$_.FileName -eq $item.Filename})
   if($match.Count -lt 1){throw "Requested Store package version not returned by Microsoft WU: $($item.Filename)"}
