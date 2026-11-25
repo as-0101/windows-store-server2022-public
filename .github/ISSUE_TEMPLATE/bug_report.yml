@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Прежде чем отправить отчёт, прочитайте [Troubleshooting](../../docs/TROUBLESHOOTING.md).
+        Прежде чем отправить отчёт, прочитайте [Troubleshooting](https://github.com/as-0101/windows-store-server2022-public/blob/main/docs/TROUBLESHOOTING.md).
         Не прикрепляйте приватные журналы, учётные данные и системные DLL.
         Please sanitize logs and do not attach proprietary Windows binaries.
   - type: input
