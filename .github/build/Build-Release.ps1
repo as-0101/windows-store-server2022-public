@@ -46,7 +46,9 @@ foreach($item in $items) {
     }
     try {
       Write-Host "Downloading exact Microsoft Store file $($item.Filename)"
-      Invoke-WebRequest -UseBasicParsing -Uri $u.AbsoluteUri -OutFile $dest -ErrorAction Stop
+      $downloadUri=$u.AbsoluteUri
+      if($u.Scheme -eq 'http') { $httpsUrl=[UriBuilder]::new($u); $httpsUrl.Scheme='https'; $httpsUrl.Port=-1; $downloadUri=$httpsUrl.Uri.AbsoluteUri }
+      Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $dest -ErrorAction Stop
       $actual=Get-Item -LiteralPath $dest
       $actualHash=(Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash
       if($actual.Length -ne $item.Length -or $actualHash -ine $item.Hash) {
