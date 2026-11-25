@@ -16,74 +16,47 @@ $items=@(
   [pscustomobject]@{Moniker='Microsoft.VCLibs.140.00_14.0.33519.0_x64__8wekyb3d8bbwe';Filename='Microsoft.VCLibs.140.00_14.0.33519.0_x64__8wekyb3d8bbwe.appx';Hash='9C17B521F9D690A1F504DA5108ED6EEC5669EB3A8FD1331EEF43E40D84E74283';Length=896581},
   [pscustomobject]@{Moniker='Microsoft.UI.Xaml.2.8_8.2501.31001.0_x64__8wekyb3d8bbwe';Filename='Microsoft.UI.Xaml.2.8_8.2501.31001.0_x64__8wekyb3d8bbwe.appx';Hash='2E7C2397D95F415FF97E26E3A63D52BE4C2E4BE3F885517E522B8E94E37B4FE2';Length=4932370}
 )
-$sfsBase='https://storeapps.api.cdp.microsoft.com/api/v2/contents/storeapps/namespaces/default/names'
-$product='64293252-5926-453c-9494-2d4021f1c78d'
-$latest=Invoke-RestMethod -Uri "$sfsBase/$product/versions/latest?action=select" -Method Post -ContentType 'application/json' -Body '{"TargetingAttributes":{}}'
-if(-not $latest.ContentId.Version) {throw 'Microsoft SFS did not return a current Store content version'}
-$versions=@([pscustomobject]@{Name=$latest.ContentId.Name;Version=$latest.ContentId.Version})
-$versions+=@($latest.Prerequisites|Where-Object {$_.Name -and $_.Version}|ForEach-Object {[pscustomobject]@{Name=$_.Name;Version=$_.Version}})
-$files=@()
-foreach($v in $versions){
-  $url="$sfsBase/$($v.Name)/versions/$($v.Version)/files?action=GenerateDownloadInfo"
-  $files+=@(Invoke-RestMethod -Uri $url -Method Post -ContentType 'application/json')
-}
-foreach($item in $items){
-  $matching=@($files|Where-Object {$_.FileMoniker -eq $item.Moniker})
-  if($matching.Count -ne 1){throw "SFS file not found uniquely: $($item.Moniker)"}
-  $meta=$matching[0]
-  # SFS may return URL candidates and hash values as arrays or provider-specific objects.
-  # Prefer an allowed Microsoft CDN candidate; never use arbitrary URLs.
-  $urls=@(foreach($candidate in @($meta.Url)){
-    if($candidate -is [string]){$candidate}
-    elseif($null -ne $candidate -and $candidate.Url){[string]$candidate.Url}
-  })
-  $urlString=$null
-  foreach($candidateUrl in $urls){
-    if([string]::IsNullOrWhiteSpace($candidateUrl)){continue}
-    try{$tryUri=[uri]$candidateUrl}catch{continue}
-    if($tryUri.Scheme -in @('https','http') -and ($tryUri.Host -eq 'dl.delivery.mp.microsoft.com' -or $tryUri.Host.EndsWith('.dl.delivery.mp.microsoft.com'))){
-      $urlString=$candidateUrl
-      break
-    }
-  }
-  if(-not $urlString){throw "No approved Microsoft CDN URL supplied for $($item.Moniker)"}
-  # The pinned SHA256 below is an independently recorded hash of the exact, original,
-  # signed Microsoft package. SFS field representations have varied between runs.
-  # Parse the optional SFS SHA256 as hex or Base64 where possible; always enforce
-  # the pinned hash on the downloaded bytes regardless of metadata shape.
-  $sfsCandidate=$meta.Hashes.Sha256
-  if($sfsCandidate -is [string] -and -not [string]::IsNullOrWhiteSpace($sfsCandidate)){
-    $candidateHash=$null
-    if($sfsCandidate -match '^[0-9a-fA-F]{64}$'){$candidateHash=$sfsCandidate}
-    elseif($sfsCandidate -match '^[A-Za-z0-9+/]{43}=$'){
-      $candidateHash=[BitConverter]::ToString([Convert]::FromBase64String($sfsCandidate)).Replace('-','')
-    }
-    if($candidateHash -and $candidateHash -ine $item.Hash){throw "SFS SHA256 differs from pinned Microsoft package hash"}
-  }
-  # Source metadata sometimes returns multi-valued size fields; verify actual downloaded byte length below.
+# Download exact package revisions through Microsoft Windows Update/Store endpoints.
+# The SFS "GenerateDownloadInfo" route recently returned EXBH transport blocks
+# instead of raw package bytes; use the pinned Microsoft WU/DisplayCatalog resolver.
+$resolver=Join-Path $env:RUNNER_TEMP 'Get-MSStoreDownloadLinks.ps1'
+Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/1NobleCyber/Get-MSStoreDownloadLinks/26510d1de601fbb76a7e124188a805abac235f64/Get-MSStoreDownloadLinks.ps1' -OutFile $resolver -ErrorAction Stop
+$blobHash=((git hash-object $resolver) | Select-Object -First 1).Trim()
+if($blobHash -ne 'd367e4791c16eb9d021a19c5b3c5691aa18de580'){throw "Pinned Store link resolver Git SHA1 mismatch: $blobHash"}
+$links=@(& $resolver -ProductId '9WZDNCRFJBMP' -Architecture x64 -Locale en-US -OSSKUId 48 -OSVersion '10.0.20348.1')
+if(-not $links){throw 'Windows Update Store link resolver returned no packages'}
+foreach($item in $items) {
+  $match=@($links | Where-Object {$_.FileName -eq $item.Filename})
+  if($match.Count -lt 1){throw "Requested Store package version not returned by Microsoft WU: $($item.Filename)"}
   $dest=Join-Path $storeFolder $item.Filename
-  Write-Host "Downloading signed Microsoft component $($item.Filename)"
-  $downloaded=$false
-  for($attempt=1;$attempt -le 3;$attempt++){
-    try{
-      Invoke-WebRequest -UseBasicParsing -Uri $urlString -OutFile $dest -ErrorAction Stop
-      $downloaded=$true;break
-    }catch{
-      if($attempt -eq 3){throw}
-      Start-Sleep -Seconds (4*$attempt)
+  $good=$false
+  foreach($link in $match) {
+    try{$u=[uri][string]$link.Url}catch{continue}
+    if($u.Scheme -ne 'https' -or
+       -not ($u.Host -eq 'dl.delivery.mp.microsoft.com' -or $u.Host.EndsWith('.dl.delivery.mp.microsoft.com') -or $u.Host -eq 'delivery.mp.microsoft.com' -or $u.Host.EndsWith('.delivery.mp.microsoft.com'))) {
+      Write-Warning "Rejected unapproved package download host $($u.Host)"
+      continue
+    }
+    try {
+      Write-Host "Downloading exact Microsoft Store file $($item.Filename)"
+      Invoke-WebRequest -UseBasicParsing -Uri $u.AbsoluteUri -OutFile $dest -ErrorAction Stop
+      $actual=Get-Item -LiteralPath $dest
+      $actualHash=(Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash
+      if($actual.Length -ne $item.Length -or $actualHash -ine $item.Hash) {
+        Write-Warning "Rejected WU file bytes: expected $($item.Length) / $($item.Hash), received $($actual.Length) / $actualHash"
+        continue
+      }
+      $sig=Get-AuthenticodeSignature -LiteralPath $dest
+      if($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft Corporation') {
+        Write-Warning "Rejected untrusted Microsoft package signature: $($sig.Status)"
+        continue
+      }
+      $good=$true;break
+    } catch {
+      Write-Warning "Microsoft CDN attempt failed for $($item.Filename): $($_.Exception.Message)"
     }
   }
-  if(-not $downloaded){throw "Cannot download $($item.Moniker)"}
-  $file=Get-Item -LiteralPath $dest
-  $actualHash=(Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash
-  if($file.Length -ne $item.Length -or $actualHash -ine $item.Hash){
-    $first=[BitConverter]::ToString([IO.File]::ReadAllBytes($dest)[0..([Math]::Min($file.Length,16)-1)])
-    throw "SFS download content mismatch for $($item.Filename): expected len=$($item.Length) hash=$($item.Hash), got len=$($file.Length) hash=$actualHash first16=$first"
-  }
-  $sig=Get-AuthenticodeSignature -LiteralPath $dest
-  if($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft Corporation'){
-    throw "Package signature invalid for $($item.Filename): $($sig.Status)"
-  }
+  if(-not $good){throw "Cannot obtain byte-verified signed package via WU: $($item.Filename)"}
 }
 Copy-Item -LiteralPath '.github/build/Install-Store.ps1' -Destination (Join-Path $storeFolder 'Install-Store.ps1')
 @'
