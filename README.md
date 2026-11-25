@@ -21,9 +21,9 @@
 
 | Компонент | Что внутри | Назначение |
 |---|---|---|
-| **[Microsoft Store](https://github.com/as-0101/windows-store-server2022-public/releases)** | Store 22610.1401.10.0, VCLibs x64, UI.Xaml 2.8, `Install-Store.ps1` | Установка и регистрация Store |
-| **[InstallServicePatcher](https://github.com/as-0101/windows-store-server2022-public/releases)** | Windows x64 EXE, справка, backup, rollback | Модификация отдельной копии `InstallService.dll` |
-| **[Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md)** | Необязательная диагностика сети | Экспериментальная ветка, готового универсального Wi-Fi фикса пока нет |
+| **Microsoft Store — ожидает публикации** | Store 22610.1401.10.0, VCLibs x64, UI.Xaml 2.8, `Install-Store.ps1` | Установка и регистрация Store |
+| **InstallServicePatcher — ожидает публикации** | Windows x64 EXE, справка, backup, rollback | Модификация отдельной копии `InstallService.dll` |
+| **[Wi-FI-Deny-Fix — в разработке](Wi-FI-Deny-Fix/README.md)** | Необязательная диагностика сети | Экспериментальная ветка, готового универсального Wi-Fi фикса пока нет |
 
 **Статус:** публичный GitHub Release ещё не опубликован: Microsoft CDN сейчас выдаёт содержимое, не совпадающее с ранее проверенным MSIXBundle. Оба проверенных архива уже подготовлены отдельно; при публикации должны появиться в GitHub Releases. Файлы исходников и временные GitHub Actions artifacts не являются установочными архивами.
 
@@ -86,7 +86,7 @@
 
 An **unofficial, experimental** Microsoft Store deployment kit and standalone InstallService compatibility patcher for **Windows Server 2022 x64 (build family 20348)**.
 
-Download the two ZIP files from [GitHub Releases](https://github.com/as-0101/windows-store-server2022-public/releases). The Store archive contains official Microsoft-signed Store 22610.1401.10.0 and minimal x64 dependencies. The patcher provides `-?` help, `.original.bak` backup and `--restore` rollback for a **detached, writable DLL copy**.
+When published, the ZIP files will be listed in [GitHub Releases](https://github.com/as-0101/windows-store-server2022-public/releases). The Store archive contains official Microsoft-signed Store 22610.1401.10.0 and minimal x64 dependencies. The patcher provides `-?` help, `.original.bak` backup and `--restore` rollback for a **detached, writable DLL copy**.
 
 Tested component revisions: **20348.3692, 20348.5756, 20348.5866**. On the 20348.3692 test VM, ChatGPT was downloaded, installed and launched after reboot. Other revisions are **not guaranteed**. Patching invalidates the DLL's original digital signature; test only in isolated environments.
 
