@@ -41,7 +41,7 @@ foreach($item in $items){
   foreach($candidateUrl in $urls){
     if([string]::IsNullOrWhiteSpace($candidateUrl)){continue}
     try{$tryUri=[uri]$candidateUrl}catch{continue}
-    if($tryUri.Scheme -in @('https','http') -and $tryUri.Host -match '(^|\\.)dl\\.delivery\\.mp\\.microsoft\\.com$'){
+    if($tryUri.Scheme -in @('https','http') -and ($tryUri.Host -eq 'dl.delivery.mp.microsoft.com' -or $tryUri.Host.EndsWith('.dl.delivery.mp.microsoft.com'))){
       $urlString=$candidateUrl
       break
     }
