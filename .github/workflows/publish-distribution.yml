@@ -1,11 +1,6 @@
 name: Build and publish Windows Server 2022 distribution
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/build/**'
-      - '.github/workflows/publish-distribution.yml'
   workflow_dispatch:
 
 permissions:
