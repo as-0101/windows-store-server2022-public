@@ -1,0 +1,78 @@
+name: Build and publish Windows Server 2022 distribution
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/build/**'
+      - '.github/workflows/publish-distribution.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build, validate and publish x64 ZIPs
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout public distribution sources
+        uses: actions/checkout@v4
+
+      - name: Compile InstallServicePatcher.exe (MSVC x64)
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /std:c++17 /O2 /EHsc /W4 /Fe:InstallServicePatcher.exe .github\build\InstallServicePatcher\main.cpp
+          if errorlevel 1 exit /b 1
+
+      - name: Test patcher CLI including -? help
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $text=& .\InstallServicePatcher.exe '-?'
+          if($LASTEXITCODE -ne 0 -or ($text -join ' ') -notmatch 'Usage'){ throw 'CLI help test failed' }
+          $text|ForEach-Object {Write-Host $_}
+
+      - name: Download signed Microsoft Store components and package verified ZIPs
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.\.github\build\Build-Release.ps1' -OutDirectory (Join-Path $env:RUNNER_TEMP 'release') -PatcherExe (Join-Path $PWD 'InstallServicePatcher.exe')
+          if(-not $?) {throw 'Release package assembly failed'}
+
+      - name: Preserve two downloadable archives as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-store-server2022-x64-distribution
+          path: ${{ runner.temp }}/release/*.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish two archives as permanent GitHub Release assets
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'release'
+          $store=Join-Path $out 'MicrosoftStore_Server2022_x64_22610.1401.10.0.zip'
+          $patcher=Join-Path $out 'InstallServicePatcher_x64.zip'
+          $notes=@'
+          ## Microsoft Store for Windows Server 2022 x64 — v1.0.0
+
+          **Included downloads**
+          - `MicrosoftStore_Server2022_x64_22610.1401.10.0.zip`: Microsoft-signed Store 22610.1401.10.0 and two minimal x64 prerequisites, plus offline PowerShell installer.
+          - `InstallServicePatcher_x64.zip`: standalone offline binary patcher. Help: `InstallServicePatcher.exe -?`. Supports `--restore` and backup.
+
+          **Test evidence:** InstallService revisions 20348.3692, 20348.5756, and 20348.5866. A user confirmed ChatGPT was installed through Store and launched on a test Server 2022 VM with component 20348.3692 after reboot. No guarantee for all revisions.
+
+          **Caution:** Community experiment, not endorsed by Microsoft. Modifying a Microsoft-signed DLL invalidates its original signature. Preserve backups and test in isolated environments. Optional Wi-FI-Deny-Fix is not a generally validated network fix.
+          '@
+          $notesPath=Join-Path $out 'RELEASE_NOTES.md'
+          $notes|Set-Content -LiteralPath $notesPath -Encoding UTF8
+          Write-Host "Store SHA256 $((Get-FileHash $store).Hash)"
+          Write-Host "Patcher SHA256 $((Get-FileHash $patcher).Hash)"
+          gh release create 'v1.0.0' $store $patcher --repo $env:GITHUB_REPOSITORY --target main --title 'Microsoft Store for Windows Server 2022 x64 · v1.0.0' --notes-file $notesPath
+          if($LASTEXITCODE -ne 0){throw 'GitHub Release publication failed; two validated ZIPs remain available as workflow artifact'}
