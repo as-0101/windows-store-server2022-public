@@ -42,7 +42,7 @@ jobs:
         with:
           name: windows-store-server2022-x64-distribution
           path: ${{ runner.temp }}/release/*.zip
-          retention-days: 30
+          retention-days: 3
           if-no-files-found: error
 
       - name: Publish two archives as permanent GitHub Release assets
