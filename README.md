@@ -6,10 +6,10 @@
 
 Набор для установки Microsoft Store и экспериментального восстановления совместимости установки приложений.
 
-**[⬇️ Скачать дистрибутив](https://github.com/as-0101/windows-store-server2022-public/releases)** · [Инструкция](#как-установить) · [FAQ](docs/FAQ.md) · [Диагностика](docs/TROUBLESHOOTING.md) · [English](#english)
+**[⬇️ Выпуски дистрибутива](https://github.com/as-0101/windows-store-server2022-public/releases)** · [Инструкция](#как-установить) · [FAQ](docs/FAQ.md) · [Диагностика](docs/TROUBLESHOOTING.md) · [English](#english)
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20Server%202022-0078D4)](https://learn.microsoft.com/en-us/windows-server/get-started/whats-new-in-windows-server-2022)
-[![Build](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml/badge.svg)](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml)
+![Revisions tested](https://img.shields.io/badge/InstallService-3%20revisions%20tested-008080)
 ![Status](https://img.shields.io/badge/Status-Experimental-orange)
 
 </div>
@@ -25,7 +25,7 @@
 | **[InstallServicePatcher](https://github.com/as-0101/windows-store-server2022-public/releases)** | Windows x64 EXE, справка, backup, rollback | Модификация отдельной копии `InstallService.dll` |
 | **[Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md)** | Необязательная диагностика сети | Экспериментальная ветка, готового универсального Wi-Fi фикса пока нет |
 
-Дистрибутив публикуется двумя ZIP-архивами в **GitHub Releases**. Источники репозитория и временные GitHub Actions artifacts — не установочные архивы.
+**Статус:** публичный GitHub Release ещё не опубликован: Microsoft CDN сейчас выдаёт содержимое, не совпадающее с ранее проверенным MSIXBundle. Оба проверенных архива уже подготовлены отдельно; при публикации должны появиться в GitHub Releases. Файлы исходников и временные GitHub Actions artifacts не являются установочными архивами.
 
 > [!NOTE]
 > Если в [Releases](https://github.com/as-0101/windows-store-server2022-public/releases) нет **опубликованного** выпуска с обоими ZIP-файлами, постоянная загрузка пока не готова. Не путайте черновики релизов и временные артефакты Actions с опубликованным дистрибутивом.
