@@ -31,15 +31,35 @@ foreach($item in $items){
   $matching=@($files|Where-Object {$_.FileMoniker -eq $item.Moniker})
   if($matching.Count -ne 1){throw "SFS file not found uniquely: $($item.Moniker)"}
   $meta=$matching[0]
-  $candidates=@($meta.Url)
-  if($candidates.Count -eq 0){throw "SFS did not provide download URL for $($item.Moniker)"}
-  $urlString=[string]$candidates[0]
-  $u=[uri]$urlString
-  if($u.Scheme -notin @('https','http') -or $u.Host -notmatch '(^|\.)dl\.delivery\.mp\.microsoft\.com$'){
-    throw "Untrusted SFS download URL for $($item.Moniker): $($u.Host)"
+  # SFS may return URL candidates and hash values as arrays or provider-specific objects.
+  # Prefer an allowed Microsoft CDN candidate; never use arbitrary URLs.
+  $urls=@(foreach($candidate in @($meta.Url)){
+    if($candidate -is [string]){$candidate}
+    elseif($null -ne $candidate -and $candidate.Url){[string]$candidate.Url}
+  })
+  $urlString=$null
+  foreach($candidateUrl in $urls){
+    if([string]::IsNullOrWhiteSpace($candidateUrl)){continue}
+    try{$tryUri=[uri]$candidateUrl}catch{continue}
+    if($tryUri.Scheme -in @('https','http') -and $tryUri.Host -match '(^|\\.)dl\\.delivery\\.mp\\.microsoft\\.com$'){
+      $urlString=$candidateUrl
+      break
+    }
   }
-  $sfsHash=([BitConverter]::ToString([Convert]::FromBase64String($meta.Hashes.Sha256))).Replace('-','')
-  if($sfsHash -ine $item.Hash){throw "Official SFS hash changed for $($item.Moniker). Stopping without using different version."}
+  if(-not $urlString){throw "No approved Microsoft CDN URL supplied for $($item.Moniker)"}
+  # The pinned SHA256 below is an independently recorded hash of the exact, original,
+  # signed Microsoft package. SFS field representations have varied between runs.
+  # Parse the optional SFS SHA256 as hex or Base64 where possible; always enforce
+  # the pinned hash on the downloaded bytes regardless of metadata shape.
+  $sfsCandidate=$meta.Hashes.Sha256
+  if($sfsCandidate -is [string] -and -not [string]::IsNullOrWhiteSpace($sfsCandidate)){
+    $candidateHash=$null
+    if($sfsCandidate -match '^[0-9a-fA-F]{64}$'){$candidateHash=$sfsCandidate}
+    elseif($sfsCandidate -match '^[A-Za-z0-9+/]{43}=$'){
+      $candidateHash=[BitConverter]::ToString([Convert]::FromBase64String($sfsCandidate)).Replace('-','')
+    }
+    if($candidateHash -and $candidateHash -ine $item.Hash){throw "SFS SHA256 differs from pinned Microsoft package hash"}
+  }
   if([long]$meta.SizeInBytes -ne [long]$item.Length){throw "Unexpected official SFS size for $($item.Moniker)"}
   $dest=Join-Path $storeFolder $item.Filename
   Write-Host "Downloading signed Microsoft component $($item.Filename)"
