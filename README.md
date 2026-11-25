@@ -1,78 +1,88 @@
-# Microsoft Store on Windows Server 2022
+<div align="center">
 
-**Microsoft Store deployment kit and offline InstallService compatibility patcher for Windows Server 2022 x64 (build 20348).**
+# Microsoft Store для Windows Server 2022
 
-[**Download releases**](https://github.com/as-0101/windows-store-server2022-public/releases) · [Installation guide](#installation--установка) · [Optional Wi-Fi diagnostics](Wi-FI-Deny-Fix/README.md)
+**Microsoft Store + InstallServicePatcher · Windows Server 2022 x64**
 
-> **Community experiment · Unofficial · Not affiliated with Microsoft.** Test in an isolated VM before using on important systems. Do not disable Windows security or licensing checks.
+Набор для установки Microsoft Store и экспериментального восстановления совместимости установки приложений.
 
-## Downloads / Загрузки
+**[⬇️ Скачать дистрибутив](https://github.com/as-0101/windows-store-server2022-public/releases)** · [Инструкция](#как-установить) · [Проверенные версии](#проверенные-версии) · [English](#english)
 
-| Package | Contents | Purpose |
+[![Platform](https://img.shields.io/badge/Platform-Windows%20Server%202022-0078D4)](https://learn.microsoft.com/en-us/windows-server/get-started/whats-new-in-windows-server-2022)
+[![Build](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml/badge.svg)](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml)
+![Status](https://img.shields.io/badge/Status-Experimental-orange)
+
+</div>
+
+> [!IMPORTANT]
+> **Неофициальный проект, не связанный с Microsoft или OpenAI.** Проверяйте результат на изолированной VM. Изменение системной DLL нарушает её исходную цифровую подпись. Работа на всех ревизиях не гарантируется.
+
+## Загрузки
+
+| Компонент | Что внутри | Назначение |
 |---|---|---|
-| **MicrosoftStore_Server2022_x64_22610.1401.10.0.zip** | Microsoft Store 22610.1401.10.0, x64 VCLibs 14.0, UI.Xaml 2.8, `Install-Store.ps1` | Offline Store registration |
-| **InstallServicePatcher_x64.zip** | `InstallServicePatcher.exe`, usage guide | Offline patch of a separately stored `InstallService.dll`, with backup and rollback |
-| **[Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md)** | Optional diagnostic notes | Investigating Wi-Fi/WFP-specific blocked connections; no tested universal fix yet |
+| **[Microsoft Store](https://github.com/as-0101/windows-store-server2022-public/releases)** | Store 22610.1401.10.0, VCLibs x64, UI.Xaml 2.8, `Install-Store.ps1` | Установка и регистрация Store |
+| **[InstallServicePatcher](https://github.com/as-0101/windows-store-server2022-public/releases)** | Windows x64 EXE, справка, backup, rollback | Модификация отдельной копии `InstallService.dll` |
+| **[Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md)** | Необязательная диагностика сети | Экспериментальная ветка, готового универсального Wi-Fi фикса пока нет |
 
-Archives are delivered as **GitHub Release assets**, not GitHub Actions artifacts that expire. SHA-256 checksums are published with the release.
+Дистрибутив публикуется двумя ZIP-архивами в **GitHub Releases**. Источники репозитория и временные GitHub Actions artifacts — не установочные архивы.
 
-## Validated revisions / Проверенные ревизии
+## Как установить
 
-| Windows Server component | Offline patcher | Microsoft Store result |
-|---|---|---|
-| InstallService **20348.3692** | Patched with extra `.eqplat` section | **Confirmed:** ChatGPT downloaded, installed and opened after VM restart |
-| InstallService **20348.5756** | Reproduces previously user-tested DLL byte-for-byte | Previously user-confirmed working on Server 2022 |
-| InstallService **20348.5866** | Patched via existing code padding | **Confirmed:** Store displayed WhatsApp as installed/openable |
+**1 — Store.** Распакуйте архив `MicrosoftStore_Server2022_x64_22610.1401.10.0.zip`. Запустите из распакованного каталога в Windows PowerShell от администратора:
 
-The host OS build and the DLL's file version can differ. Other revisions are **not guaranteed**. Unsupported layouts must be rejected rather than blindly modified.
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-Store.ps1"
 
-## Installation / Установка
+Скрипт проверяет SHA-256 и подписи Microsoft, затем регистрирует Store. **Не меняет** системные DLL, WFP, брандмауэр, настройки аккаунта или лицензирования.
 
-**1. Extract** the Store ZIP into a dedicated directory on an x64 Windows Server 2022 test VM. Confirm the included Microsoft packages have valid signatures.
+**2 — Патчер.** Распакуйте архив `InstallServicePatcher_x64.zip`. Показать доступные команды:
 
-**2. Run** the included script using an elevated Windows PowerShell session:
+    .\InstallServicePatcher.exe -?
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-Store.ps1"
-```
+Модифицировать **отдельную оригинальную копию DLL в каталоге с доступом на запись**:
 
-**3. Patch a detached DLL** *only in a writable test directory*, not directly in System32. Run the x64 patcher:
+    .\InstallServicePatcher.exe "D:\TEST\InstallService.dll"
 
-```powershell
-.\InstallServicePatcher.exe -?
-```
+Патчер создаёт `InstallService.dll.original.bak`, проверяет структуру кода и отказывается менять неизвестные ревизии. Он **не подменяет DLL в System32** и не изменяет разрешения Windows.
 
-```powershell
-.\InstallServicePatcher.exe "D:\TEST\InstallService.dll"
-```
+Восстановить оригинальную копию:
 
-The program creates `InstallService.dll.original.bak`. It does **not** change file permissions or install the modified binary into Windows. Any deployment of a modified system file requires a separate, controlled process with a recovery plan.
+    .\InstallServicePatcher.exe "D:\TEST\InstallService.dll" --restore
 
-**4. Restart the test VM** after completing the relevant test deployment, and verify that a previously absent, free application can be downloaded, installed and launched through Microsoft Store. In the 20348.3692 experiment, installation progressed only after reboot.
+**3 — Проверка.** После контролируемого тестового развёртывания и перезагрузки VM убедитесь, что Store скачивает, устанавливает и открывает ранее отсутствовавшее бесплатное приложение. Для испытанной версии 20348.3692 перезагрузка оказалась необходимой.
 
-**Rollback:**
+## Проверенные версии
 
-```powershell
-.\InstallServicePatcher.exe "D:\TEST\InstallService.dll" --restore
-```
+| Версия InstallService.dll | Подтверждённый результат |
+|---|---|
+| **20348.3692** | После патча и перезагрузки VM ChatGPT скачан из Store, установлен и запущен |
+| **20348.5756** | Создана побайтно идентичная ранее испытанной рабочая модификация |
+| **20348.5866** | Патч выполнен, пользователь подтвердил работу Store (WhatsApp отображается с кнопкой «Открыть») |
 
-The original backup is retained.
+> [!NOTE]
+> Версия компонента и сборка ОС могут различаться. На испытанной VM ОС была `20348.4893`, а файл `InstallService.dll` — `20348.3692`. Сборки вне этого списка не гарантируются.
 
-## Scope, limitations and integrity
+## Ограничения
 
-- **Windows Server 2022 / x64 only.** No claim of support for every system revision.
-- Patched Microsoft DLLs **lose their original Authenticode signature integrity** and may be rejected by Windows code-integrity protections. The program does not bypass these protections.
-- The Store archive includes the **core Store package and two dependencies only**. It is *not* the previous full distribution containing StorePurchaseApp, XboxIdentityProvider and DesktopAppInstaller.
-- No firewall, WFP, Wi-Fi policy, Microsoft account or licensing changes are made by the included Store installation script.
-- Microsoft Store files are Microsoft's property. Redistribution and use are subject to Microsoft's applicable license terms.
-- **Never use third-party DLL files or patching tools on production infrastructure without independently verifying provenance, recovery and security implications.**
+- **Windows Server 2022 x64**, семейство сборок `20348`. Для других поколений Windows Server поддержка не заявлена.
+- Модификация Microsoft DLL нарушает исходную подпись Authenticode и может быть отклонена Windows Code Integrity. Патчер эту защиту не отключает.
+- Store ZIP содержит **основной Store и две зависимости** — не полный комплект с XboxIdentityProvider, StorePurchaseApp и DesktopAppInstaller.
+- Используйте резервные копии, тестовую VM и план восстановления. Не применяйте к рабочим серверам без самостоятельной проверки.
+- Microsoft Store и его подписанные пакеты принадлежат Microsoft; распространение и использование подчиняются условиям Microsoft.
+- **Wi-FI-Deny-Fix** не нужен, если Store нормально скачивает и устанавливает приложения.
 
 ---
 
-## Русское краткое описание
+## English
 
-Это экспериментальный комплект для Windows Server 2022 x64: установка Microsoft Store и отдельный патчер `InstallService.dll`. Патчер обрабатывает DLL в указанном каталоге, создаёт резервную копию и поддерживает восстановление через `--restore`. Справка: `-?`.
+An **unofficial, experimental** Microsoft Store deployment kit and standalone InstallService compatibility patcher for **Windows Server 2022 x64 (build family 20348)**.
 
-Проверены три ревизии компонента. На тестовой VM после перезагрузки приложение ChatGPT установилось из Store и запустилось. **Для других ревизий совместимость не гарантируется.**
+Download the two ZIP files from [GitHub Releases](https://github.com/as-0101/windows-store-server2022-public/releases). The Store archive contains official Microsoft-signed Store 22610.1401.10.0 and minimal x64 dependencies. The patcher provides `-?` help, `.original.bak` backup and `--restore` rollback for a **detached, writable DLL copy**.
 
-**Wi-Fi-Deny-Fix** — отдельный необязательный раздел, а не обязательная часть установки.
+Tested component revisions: **20348.3692, 20348.5756, 20348.5866**. On the 20348.3692 test VM, ChatGPT was downloaded, installed and launched after reboot. Other revisions are **not guaranteed**. Patching invalidates the DLL's original digital signature; test only in isolated environments.
+
+Optional [Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md) documents network diagnostics; it is not a verified one-click repair.
+
+---
+
+<sub>Community project · Not affiliated with or endorsed by Microsoft or OpenAI.</sub>
