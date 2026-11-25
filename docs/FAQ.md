@@ -34,7 +34,7 @@
 
 ### Где скачать?
 
-На странице [GitHub Releases](https://github.com/as-0101/windows-store-server2022-public/releases). Если там нет опубликованного релиза с ZIP-файлами, стабильная точка скачивания ещё отсутствует. Временные GitHub Actions artifacts не следует путать с готовым релизом.
+[Microsoft Store — релиз v1.0.0](https://github.com/as-0101/windows-store-server2022-public/releases/tag/v1.0.0). [InstallServicePatcher — папка компонента](https://github.com/as-0101/windows-store-server2022-public/tree/main/InstallServicePatcher).
 
 ### Как сообщить об ошибке?
 
