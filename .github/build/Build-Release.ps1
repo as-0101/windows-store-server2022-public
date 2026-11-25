@@ -37,7 +37,9 @@ foreach($item in $items) {
   $good=$false
   foreach($link in $match) {
     try{$u=[uri][string]$link.Url}catch{continue}
-    if($u.Scheme -ne 'https' -or
+    # Microsoft WU sometimes returns an HTTP Microsoft CDN URL. Authenticity is established below by
+    # the pinned SHA-256 of the complete file and a VALID Microsoft package signature.
+    if($u.Scheme -notin @('https','http') -or
        -not ($u.Host -eq 'dl.delivery.mp.microsoft.com' -or $u.Host.EndsWith('.dl.delivery.mp.microsoft.com') -or $u.Host -eq 'delivery.mp.microsoft.com' -or $u.Host.EndsWith('.delivery.mp.microsoft.com'))) {
       Write-Warning "Rejected unapproved package download host $($u.Host)"
       continue
