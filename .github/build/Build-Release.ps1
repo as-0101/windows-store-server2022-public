@@ -75,8 +75,11 @@ foreach($item in $items){
   }
   if(-not $downloaded){throw "Cannot download $($item.Moniker)"}
   $file=Get-Item -LiteralPath $dest
-  if($file.Length -ne $item.Length){throw "Size mismatch for $($item.Filename)"}
-  if((Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash -ine $item.Hash){throw "SHA-256 mismatch for $($item.Filename)"}
+  $actualHash=(Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash
+  if($file.Length -ne $item.Length -or $actualHash -ine $item.Hash){
+    $first=[BitConverter]::ToString([IO.File]::ReadAllBytes($dest)[0..([Math]::Min($file.Length,16)-1)])
+    throw "SFS download content mismatch for $($item.Filename): expected len=$($item.Length) hash=$($item.Hash), got len=$($file.Length) hash=$actualHash first16=$first"
+  }
   $sig=Get-AuthenticodeSignature -LiteralPath $dest
   if($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft Corporation'){
     throw "Package signature invalid for $($item.Filename): $($sig.Status)"
