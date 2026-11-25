@@ -31,7 +31,10 @@ foreach($item in $items){
   $matching=@($files|Where-Object {$_.FileMoniker -eq $item.Moniker})
   if($matching.Count -ne 1){throw "SFS file not found uniquely: $($item.Moniker)"}
   $meta=$matching[0]
-  $u=[uri]$meta.Url
+  $candidates=@($meta.Url)
+  if($candidates.Count -eq 0){throw "SFS did not provide download URL for $($item.Moniker)"}
+  $urlString=[string]$candidates[0]
+  $u=[uri]$urlString
   if($u.Scheme -notin @('https','http') -or $u.Host -notmatch '(^|\.)dl\.delivery\.mp\.microsoft\.com$'){
     throw "Untrusted SFS download URL for $($item.Moniker): $($u.Host)"
   }
@@ -43,7 +46,7 @@ foreach($item in $items){
   $downloaded=$false
   for($attempt=1;$attempt -le 3;$attempt++){
     try{
-      Invoke-WebRequest -UseBasicParsing -Uri $meta.Url -OutFile $dest -ErrorAction Stop
+      Invoke-WebRequest -UseBasicParsing -Uri $urlString -OutFile $dest -ErrorAction Stop
       $downloaded=$true;break
     }catch{
       if($attempt -eq 3){throw}
