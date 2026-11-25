@@ -6,7 +6,7 @@
 
 Набор для установки Microsoft Store и экспериментального восстановления совместимости установки приложений.
 
-**[⬇️ Скачать дистрибутив](https://github.com/as-0101/windows-store-server2022-public/releases)** · [Инструкция](#как-установить) · [Проверенные версии](#проверенные-версии) · [English](#english)
+**[⬇️ Скачать дистрибутив](https://github.com/as-0101/windows-store-server2022-public/releases)** · [Инструкция](#как-установить) · [FAQ](docs/FAQ.md) · [Диагностика](docs/TROUBLESHOOTING.md) · [English](#english)
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20Server%202022-0078D4)](https://learn.microsoft.com/en-us/windows-server/get-started/whats-new-in-windows-server-2022)
 [![Build](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml/badge.svg)](https://github.com/as-0101/windows-store-server2022-public/actions/workflows/publish-distribution.yml)
@@ -26,6 +26,15 @@
 | **[Wi-FI-Deny-Fix](Wi-FI-Deny-Fix/README.md)** | Необязательная диагностика сети | Экспериментальная ветка, готового универсального Wi-Fi фикса пока нет |
 
 Дистрибутив публикуется двумя ZIP-архивами в **GitHub Releases**. Источники репозитория и временные GitHub Actions artifacts — не установочные архивы.
+
+> [!NOTE]
+> Если в [Releases](https://github.com/as-0101/windows-store-server2022-public/releases) нет **опубликованного** выпуска с обоими ZIP-файлами, постоянная загрузка пока не готова. Не путайте черновики релизов и временные артефакты Actions с опубликованным дистрибутивом.
+
+## Помощь посетителям
+
+**[Частые вопросы](docs/FAQ.md)** · **[Диагностика ошибок](docs/TROUBLESHOOTING.md)** · **[Проверка загрузок и подписей](docs/VERIFY_DOWNLOADS.md)**
+
+Для сообщений об ошибках используйте [GitHub Issues](https://github.com/as-0101/windows-store-server2022-public/issues/new/choose), предварительно удалив из логов личную информацию. Для улучшений проекта доступны [правила участия](CONTRIBUTING.md) и [шаблон Pull Request](.github/pull_request_template.md). О потенциальных уязвимостях см. [SECURITY.md](SECURITY.md).
 
 ## Как установить
 
@@ -53,7 +62,7 @@
 
 ## Проверенные версии
 
-| Версия InstallService.dll | Подтверждённый результат |
+| Версия InstallService.dll | Имеющиеся свидетельства |
 |---|---|
 | **20348.3692** | После патча и перезагрузки VM ChatGPT скачан из Store, установлен и запущен |
 | **20348.5756** | Создана побайтно идентичная ранее испытанной рабочая модификация |
