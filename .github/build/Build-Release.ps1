@@ -60,7 +60,7 @@ foreach($item in $items){
     }
     if($candidateHash -and $candidateHash -ine $item.Hash){throw "SFS SHA256 differs from pinned Microsoft package hash"}
   }
-  if([long]$meta.SizeInBytes -ne [long]$item.Length){throw "Unexpected official SFS size for $($item.Moniker)"}
+  # Source metadata sometimes returns multi-valued size fields; verify actual downloaded byte length below.
   $dest=Join-Path $storeFolder $item.Filename
   Write-Host "Downloading signed Microsoft component $($item.Filename)"
   $downloaded=$false
