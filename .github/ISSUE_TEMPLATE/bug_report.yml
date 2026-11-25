@@ -1,0 +1,63 @@
+name: "Ошибка / Bug report"
+description: "Воспроизводимая проблема на Windows Server 2022 / Reproducible problem"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Прежде чем отправить отчёт, прочитайте [Troubleshooting](../../docs/TROUBLESHOOTING.md).
+        Не прикрепляйте приватные журналы, учётные данные и системные DLL.
+        Please sanitize logs and do not attach proprietary Windows binaries.
+  - type: input
+    id: os
+    attributes:
+      label: "Версия Windows Server / OS build"
+      description: "Например: Windows Server 2022 Datacenter, 20348.4893"
+      placeholder: "Windows Server 2022, 20348.x"
+    validations:
+      required: true
+  - type: input
+    id: dll
+    attributes:
+      label: "Версия InstallService.dll / Component version"
+      placeholder: "10.0.20348.x; оригинальный или изменённый"
+    validations:
+      required: false
+  - type: dropdown
+    id: stage
+    attributes:
+      label: "Этап сбоя / Failure stage"
+      options:
+        - "Установка / регистрация Store"
+        - "Запуск Store"
+        - "Кнопка «Получить» / product eligibility"
+        - "Загрузка / download"
+        - "Установка приложения / deployment"
+        - "Запуск приложения / launch"
+        - "Offline-патчер / patcher"
+        - "Сеть / network"
+        - "Другое / other"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: "Как воспроизвести / Steps to reproduce"
+      placeholder: "Действия по порядку; используемый архив/релиз; имя приложения"
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: "Фактический и ожидаемый результат / Actual and expected"
+      placeholder: "Точный HRESULT, текст ошибки, время; что ожидалось"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Очищенные логи / Sanitized evidence"
+      description: "Не публикуйте токены, адреса, аккаунты, ключи, полные дампы и защищённые системные бинарники."
+    validations:
+      required: false
