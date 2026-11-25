@@ -22,7 +22,7 @@ $items=@(
 $resolver=Join-Path $env:RUNNER_TEMP 'Get-MSStoreDownloadLinks.ps1'
 Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/1NobleCyber/Get-MSStoreDownloadLinks/26510d1de601fbb76a7e124188a805abac235f64/Get-MSStoreDownloadLinks.ps1' -OutFile $resolver -ErrorAction Stop
 $blobHash=((git hash-object $resolver) | Select-Object -First 1).Trim()
-if($blobHash -ne 'd367e4791c16eb9d021a19c5b3c5691aa18de580'){throw "Pinned Store link resolver Git SHA1 mismatch: $blobHash"}
+if($blobHash -ne '12c6ef8c9bb905bf9bf322d37c9b06da64cd6e2a'){throw "Pinned Store link resolver Git SHA1 mismatch: $blobHash"}
 $links=@(& $resolver -ProductId '9WZDNCRFJBMP' -Architecture x64 -Locale en-US -OSSKUId 48 -OSVersion '10.0.20348.1')
 if(-not $links){throw 'Windows Update Store link resolver returned no packages'}
 foreach($item in $items) {
