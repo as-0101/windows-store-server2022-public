@@ -28,7 +28,10 @@ if(-not $links){throw 'Windows Update Store link resolver returned no packages'}
 Write-Host 'WU package names: '
 $links|Select-Object -ExpandProperty FileName|Select-Object -First 35|ForEach-Object {Write-Host "  $_"}
 foreach($item in $items) {
-  $match=@($links | Where-Object {$_.FileName -eq $item.Filename})
+  # Windows Update filenames append a GUID file identifier after the package moniker.
+  # Match the exact pinned package identity followed by one GUID; trust only bytes matching our pinned SHA256.
+  $ext=[IO.Path]::GetExtension($item.Filename)
+  $match=@($links | Where-Object {$_.FileName -like ($item.Moniker + '_*' + $ext)})
   if($match.Count -lt 1){throw "Requested Store package version not returned by Microsoft WU: $($item.Filename)"}
   $dest=Join-Path $storeFolder $item.Filename
   $good=$false
